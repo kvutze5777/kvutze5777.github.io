@@ -23,6 +23,30 @@ iframe{position:fixed;inset:0;width:100%;height:100%;border:0;padding-top:env(sa
 (function () {
   var EXEC = 'https://script.google.com/macros/s/AKfycbzYtzQDud3Uc_zHINYIFxNNTZYtKRwrapP5sjy5AMHCvu4KyDJvTco1-VIF8V5trdok/exec';
   var K = 'alfonAZ_wrap', st = {};
+  function idb(cb) {
+    try {
+      var r = indexedDB.open('alfonAZ', 1);
+      r.onupgradeneeded = function () { r.result.createObjectStore('kv'); };
+      r.onsuccess = function () { cb(r.result); };
+      r.onerror = function () { cb(null); };
+    } catch (x) { cb(null); }
+  }
+  function cacheGet(cb) {
+    idb(function (db) {
+      if (!db) return cb(null);
+      try { var q = db.transaction('kv').objectStore('kv').get('cache'); q.onsuccess = function () { cb(q.result || null); }; q.onerror = function () { cb(null); }; }
+      catch (x) { cb(null); }
+    });
+  }
+  function cachePut(o) {
+    cacheGet(function (c) {
+      if (!c || c.t !== o.t) c = { t: o.t };
+      if (o.d) c.d = o.d;
+      if (o.ph) { c.ph = o.ph; c.phts = o.phts || 0; }
+      idb(function (db) { if (!db) return; try { db.transaction('kv', 'readwrite').objectStore('kv').put(c, 'cache'); } catch (x) {} });
+    });
+  }
+  function cacheClear() { idb(function (db) { if (!db) return; try { db.transaction('kv', 'readwrite').objectStore('kv').delete('cache'); } catch (x) {} }); }
   try { st = JSON.parse(localStorage.getItem(K) || '{}') || {}; } catch (e) { st = {}; }
   var q = [];
   if (st.t) q.push('t=' + encodeURIComponent(st.t));
@@ -36,10 +60,17 @@ iframe{position:fixed;inset:0;width:100%;height:100%;border:0;padding-top:env(sa
     var host = '';
     try { host = new URL(e.origin).hostname; } catch (x) { return; }
     if (!/(\.googleusercontent\.com|^script\.google\.com)$/.test(host)) return;
+    if (e.data && ('alfonAZ_get' in e.data)) {
+      var src = e.source, org = e.origin, tok = String(e.data.alfonAZ_get || '');
+      cacheGet(function (c) { try { src.postMessage({ alfonAZ_cache: (c && tok && c.t === tok) ? c : null }, org); } catch (x) {} });
+      return;
+    }
+    if (e.data && e.data.alfonAZ_put) { cachePut(e.data.alfonAZ_put); return; }
     if (e.data && e.data.alfonAZ_install) { if (deferred) { deferred.prompt(); deferred = null; } return; }
     var d = e.data && e.data.alfonAZ;
     if (!d) return;
     st = { t: String(d.t || ''), s: d.s || null };
+    if (!st.t) cacheClear();
     try { localStorage.setItem(K, JSON.stringify(st)); } catch (x) {}
   });
 })();
