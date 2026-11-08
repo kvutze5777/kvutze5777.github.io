@@ -18,6 +18,31 @@ iframe{position:fixed;inset:0;width:100%;height:100%;border:0;padding-top:env(sa
 </style>
 </head>
 <body>
-<iframe src="https://script.google.com/macros/s/AKfycbzYtzQDud3Uc_zHINYIFxNNTZYtKRwrapP5sjy5AMHCvu4KyDJvTco1-VIF8V5trdok/exec" allow="clipboard-write" title="אלפון ע״ז"></iframe>
+<iframe id="app" allow="clipboard-write" title="אלפון ע״ז"></iframe>
+<script>
+(function () {
+  var EXEC = 'https://script.google.com/macros/s/AKfycbzYtzQDud3Uc_zHINYIFxNNTZYtKRwrapP5sjy5AMHCvu4KyDJvTco1-VIF8V5trdok/exec';
+  var K = 'alfonAZ_wrap', st = {};
+  try { st = JSON.parse(localStorage.getItem(K) || '{}') || {}; } catch (e) { st = {}; }
+  var q = [];
+  if (st.t) q.push('t=' + encodeURIComponent(st.t));
+  if (st.s) q.push('s=' + encodeURIComponent(JSON.stringify(st.s)));
+  var pwa = (window.navigator.standalone === true) || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  if (pwa) q.push('pwa=1');
+  var deferred = null;
+  window.addEventListener('beforeinstallprompt', function (ev) { ev.preventDefault(); deferred = ev; });
+  document.getElementById('app').src = EXEC + (q.length ? '?' + q.join('&') : '');
+  window.addEventListener('message', function (e) {
+    var host = '';
+    try { host = new URL(e.origin).hostname; } catch (x) { return; }
+    if (!/(\.googleusercontent\.com|^script\.google\.com)$/.test(host)) return;
+    if (e.data && e.data.alfonAZ_install) { if (deferred) { deferred.prompt(); deferred = null; } return; }
+    var d = e.data && e.data.alfonAZ;
+    if (!d) return;
+    st = { t: String(d.t || ''), s: d.s || null };
+    try { localStorage.setItem(K, JSON.stringify(st)); } catch (x) {}
+  });
+})();
+</script>
 </body>
 </html>
