@@ -55,6 +55,12 @@ iframe{position:fixed;inset:0;width:100%;height:100%;border:0;padding-top:env(sa
   if (pwa) q.push('pwa=1');
   var deferred = null;
   window.addEventListener('beforeinstallprompt', function (ev) { ev.preventDefault(); deferred = ev; });
+  var cm = (location.search.match(/[?&]card=([^&#]+)/) || [])[1];
+  if (cm) {
+    document.title = 'כרטיס – אלפון ע״ז';
+    document.getElementById('app').src = EXEC + '?w=1&card=' + encodeURIComponent(decodeURIComponent(cm));
+    return;
+  }
   document.getElementById('app').src = EXEC + (q.length ? '?' + q.join('&') : '');
   window.addEventListener('message', function (e) {
     var host = '';
